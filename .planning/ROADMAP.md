@@ -1,0 +1,68 @@
+# GeoAcquire Roadmap
+
+**Created:** 2026-04-11
+**Granularity:** Standard
+**Phases:** 2
+
+## Phases
+
+- [ ] **Phase 1: Spatial Foundation** - Database setup, basic CRUD operations, and GeoJSON API format
+- [ ] **Phase 2: Spatial Analysis** - Buffer zones, spatial queries, and area aggregation
+
+## Phase Details
+
+### Phase 1: Spatial Foundation
+
+**Goal:** API can store, retrieve, and validate land parcels as spatial data returning valid GeoJSON
+
+**Depends on:** Nothing
+
+**Requirements:**
+- FOUND-01, FOUND-02, FOUND-03, FOUND-04, FOUND-06, FOUND-07, FOUND-08
+- DATA-01, DATA-02, DATA-03, DATA-04, DATA-05
+- API-01, API-02, API-03, API-04
+- ANAL-01, ANAL-03
+
+**Success Criteria** (what must be TRUE):
+1. API can create a land parcel via POST /api/parcels with GeoJSON geometry and stores it as POLYGON in MySQL
+2. API can retrieve a parcel via GET /api/parcels/{id} returning valid GeoJSON Feature with correct coordinate order [longitude, latitude]
+3. API can list all parcels via GET /api/parcels returning valid GeoJSON FeatureCollection
+4. API can update and delete parcels via PUT/PATCH and DELETE endpoints
+5. Database has spatial indexes on geometry columns and validates geometry before insertion (ST_IsValid)
+6. Seeder populates database with 10-20 dummy parcels in Gading Serpong area
+7. API returns calculated area (sqm) in all parcel GeoJSON responses
+
+**Plans:** TBD
+
+### Phase 2: Spatial Analysis
+
+**Goal:** API can perform spatial queries, buffer zone analysis, and aggregate statistics
+
+**Depends on:** Phase 1 (requires spatial data storage and GeoJSON format)
+
+**Requirements:**
+- SPAT-01, SPAT-02, SPAT-03
+- FOUND-05
+- DATA-06
+- ANAL-02
+
+**Success Criteria** (what must be TRUE):
+1. API can find parcels within a bounding box via GET /api/parcels?bbox=minx,miny,maxx,maxy
+2. API can find parcels within a buffer zone of a point via POST /api/analysis/buffer
+3. API can find parcels within a buffer zone of a parcel via GET /api/parcels/{id}/buffer?distance=500
+4. API can filter parcels by status (target, negotiating, free) via ?status= parameter
+5. API can aggregate total area by status via GET /api/parcels/aggregate/area?by=status
+6. API can import bulk GeoJSON via POST /api/parcels/import with validation feedback
+
+**Plans:** TBD
+
+## Progress
+
+| Phase | Plans Complete | Status | Completed |
+|-------|----------------|--------|-----------|
+| 1. Spatial Foundation | 0/1 | Not started | - |
+| 2. Spatial Analysis | 0/1 | Not started | - |
+
+---
+
+**Last updated:** 2026-04-11
