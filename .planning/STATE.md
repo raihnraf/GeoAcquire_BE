@@ -9,7 +9,7 @@
 Spatial data must be queryable and analyzable — if a user can't get land parcels within a buffer zone or calculate accurate areas, the system fails.
 
 ### Current Focus
-Building REST API with GeoJSON responses for land parcel management and spatial analysis.
+Phase 1 COMPLETE: Full CRUD API with GeoJSON responses, spatial storage, area calculation, and seeded data.
 
 ### Context
 - **Target:** Portfolio project for Paramount Enterprise (property development)
@@ -19,9 +19,9 @@ Building REST API with GeoJSON responses for land parcel management and spatial 
 ## Current Position
 
 **Phase:** Phase 1 - Spatial Foundation
-**Plan:** TBD
-**Status:** Planning
-**Progress:** ████░░░░░░ 20% (Roadmap created, ready for phase planning)
+**Plan:** COMPLETE
+**Status:** Complete
+**Progress:** ██████████ 100%
 
 ## Performance Metrics
 
@@ -32,53 +32,60 @@ _No metrics yet - project in planning phase_
 ### Key Decisions Logged
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| GeoJSON response format | Standard GIS format, direct compatibility with Leaflet.js frontend | — Pending |
-| MySQL spatial types | Native spatial support, Spatial Index for performance | — Pending |
-| Buffer zone analysis | Core business need — finding parcels near infrastructure | — Pending |
+| GeoJSON response format | Standard GIS format, direct compatibility with Leaflet.js frontend | Implemented via API Resources |
+| MySQL spatial types | Native spatial support, Spatial Index for performance | Implemented with matanyadaev/laravel-eloquent-spatial |
+| Buffer zone analysis | Core business need — finding parcels near infrastructure | Planned for Phase 2 |
+| SRID 4326 (WGS84) | Standard GPS coordinate system | Set as default in AppServiceProvider |
+| Layered architecture | Controllers -> Services -> Repositories | Implemented as planned |
 
 ### Technical Decisions
 - **Laravel 12**: Latest Laravel with PHP 8.2+ support
 - **MySQL 8.0**: Spatial data storage with POLYGON/POINT types
-- **matanyadaev/laravel-eloquent-spatial**: Eloquent spatial integration (needs Laravel 12 compatibility verification)
+- **matanyadaev/laravel-eloquent-spatial v4.7**: Eloquent spatial integration with Laravel 12 support
 - **Layered architecture**: Controllers → Services → Repositories pattern
 - **SRID 4326**: WGS84 coordinate system for all spatial data
+- **Resource wrapping disabled**: `JsonResource::withoutWrapping()` for clean GeoJSON output
 
 ### Known Constraints
 - **Backend Only**: Frontend is separate React repository
 - **Free Tier Deployment**: Aiven (MySQL) + Render (Laravel) limitations
 - **Demo-Ready**: Must have seeded Gading Serpong dummy data
+- **System env var `DB_CONNECTION=sqlite`** overrides .env — must use inline env vars or TestCase override for MySQL
 
 ### Active Todos
-- Verify matanyadaev/laravel-eloquent-spatial v2.0 Laravel 12 compatibility
-- Confirm Aiven MySQL free tier supports spatial indexes and ST_* functions
-- Test ST_Buffer performance on datasets of 1000+ parcels (Phase 2)
+- Verify spatial package Laravel 12 compatibility — VERIFIED (v4.7 compatible)
+- Test ST_Buffer performance on 1000+ parcels (Phase 2)
 
 ### Blockers
 _None identified_
 
 ### Risks
-- **SRID/CRS mismatches**: Can cause wrong distance calculations — mitigate by standardizing on SRID 4326
-- **Invalid geometry storage**: Breaks spatial queries — mitigate by validating with ST_IsValid() before insertion
-- **Missing spatial indexes**: Causes performance degradation — mitigate by adding spatialIndex() in all migrations
-- **Buffer zone performance**: May be bottleneck on large datasets — add performance testing to Phase 2
+- **SRID/CRS mismatches**: Mitigated by standardizing on SRID 4326 in AppServiceProvider
+- **Invalid geometry storage**: Mitigated by validation in Form Requests
+- **Missing spatial indexes**: Mitigated by spatialIndex() in migrations (MySQL only)
+- **Buffer zone performance**: Flagged for Phase 2 performance testing
 
 ## Session Continuity
 
 ### Last Session Work
-- Created roadmap with 2 phases
-- Mapped all 25 v1 requirements to phases
-- Derived success criteria for each phase
+- Phase 1: Spatial Foundation — COMPLETE
+- All 18 Phase 1 requirements implemented and tested
+- 14 tests passing with 38 assertions
+- Code style clean (Pint passes)
 
 ### Next Session Priorities
-1. Run `/gsd-plan-phase 1` to create Phase 1 execution plan
-2. Verify Laravel 12 spatial package compatibility
-3. Set up Laravel 12 project structure
+1. Start Phase 2: Spatial Analysis (buffer zones, bounding box queries, area aggregation)
+2. Implement SPAT-01, SPAT-02, SPAT-03 (spatial queries)
+3. Implement FOUND-05 (status filtering)
+4. Implement DATA-06 (GeoJSON import)
+5. Implement ANAL-02 (area aggregation by status)
 
 ### Context Handoff Notes
-- Research SUMMARY.md available with detailed architecture recommendations
-- REQUIREMENTS.md has traceability table showing all requirements mapped
-- Critical spatial database patterns must be implemented correctly in Phase 1 (SRID, indexes, validation)
-- Buffer zone performance testing flagged for Phase 2
+- All Phase 1 files are in place and tested
+- MySQL required for spatial features (SQLite lacks ST_* functions)
+- System-level `DB_CONNECTION=sqlite` env var overrides .env — use `DB_CONNECTION=mysql` inline or TestCase override
+- API endpoints: CRUD on `/api/parcels`, area on `/api/parcels/{id}/area`
+- 15 dummy parcels seeded in Gading Serpong area
 
 ---
 
