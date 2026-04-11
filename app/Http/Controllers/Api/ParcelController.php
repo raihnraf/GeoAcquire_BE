@@ -34,6 +34,44 @@ class ParcelController extends Controller
                 ], 422);
             }
 
+            // Parse coordinates
+            $coords = explode(',', $request->input('bbox'));
+            $minLng = (float) $coords[0];
+            $minLat = (float) $coords[1];
+            $maxLng = (float) $coords[2];
+            $maxLat = (float) $coords[3];
+
+            // Validate longitude range (-180 to 180)
+            if ($minLng < -180 || $minLng > 180 || $maxLng < -180 || $maxLng > 180) {
+                return response()->json([
+                    'message' => 'Longitude values must be between -180 and 180',
+                    'errors' => ['bbox' => ['Invalid longitude value']],
+                ], 422);
+            }
+
+            // Validate latitude range (-90 to 90)
+            if ($minLat < -90 || $minLat > 90 || $maxLat < -90 || $maxLat > 90) {
+                return response()->json([
+                    'message' => 'Latitude values must be between -90 and 90',
+                    'errors' => ['bbox' => ['Invalid latitude value']],
+                ], 422);
+            }
+
+            // Validate min < max for both coordinates
+            if ($minLng >= $maxLng) {
+                return response()->json([
+                    'message' => 'Invalid bbox: minLng must be less than maxLng',
+                    'errors' => ['bbox' => ['minLng must be less than maxLng']],
+                ], 422);
+            }
+
+            if ($minLat >= $maxLat) {
+                return response()->json([
+                    'message' => 'Invalid bbox: minLat must be less than maxLat',
+                    'errors' => ['bbox' => ['minLat must be less than maxLat']],
+                ], 422);
+            }
+
             // Validate status if provided
             if ($request->has('status') && ! in_array($request->input('status'), ['free', 'negotiating', 'target'])) {
                 return response()->json([
@@ -42,12 +80,9 @@ class ParcelController extends Controller
                 ], 422);
             }
 
-            $coords = explode(',', $request->input('bbox'));
+            // Use parsed coordinates instead of inline explode
             $parcels = $this->parcelService->findParcelsWithinBoundingBox(
-                (float) $coords[0], // minLng
-                (float) $coords[1], // minLat
-                (float) $coords[2], // maxLng
-                (float) $coords[3]  // maxLat
+                $minLng, $minLat, $maxLng, $maxLat
             );
 
             // Apply status filter if provided

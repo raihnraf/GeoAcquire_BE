@@ -196,4 +196,55 @@ class SpatialQueryTest extends TestCase
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['lng']);
     }
+
+    public function test_bounding_box_rejects_invalid_longitude(): void
+    {
+        $response = $this->getJson('/api/v1/parcels?bbox=999,-6,1000,-5');
+
+        $response->assertStatus(422)
+            ->assertJsonPath('message', 'Longitude values must be between -180 and 180')
+            ->assertJsonPath('errors.bbox.0', 'Invalid longitude value');
+    }
+
+    public function test_bounding_box_rejects_invalid_latitude(): void
+    {
+        $response = $this->getJson('/api/v1/parcels?bbox=106,999,107,-5');
+
+        $response->assertStatus(422)
+            ->assertJsonPath('message', 'Latitude values must be between -90 and 90')
+            ->assertJsonPath('errors.bbox.0', 'Invalid latitude value');
+    }
+
+    public function test_bounding_box_rejects_min_lng_greater_than_max_lng(): void
+    {
+        $response = $this->getJson('/api/v1/parcels?bbox=107,-6,106,-5');
+
+        $response->assertStatus(422)
+            ->assertJsonPath('message', 'Invalid bbox: minLng must be less than maxLng')
+            ->assertJsonPath('errors.bbox.0', 'minLng must be less than maxLng');
+    }
+
+    public function test_bounding_box_rejects_min_lat_greater_than_max_lat(): void
+    {
+        $response = $this->getJson('/api/v1/parcels?bbox=106,-5,107,-6');
+
+        $response->assertStatus(422)
+            ->assertJsonPath('message', 'Invalid bbox: minLat must be less than maxLat')
+            ->assertJsonPath('errors.bbox.0', 'minLat must be less than maxLat');
+    }
+
+    public function test_bounding_box_accepts_valid_edge_case_coordinates(): void
+    {
+        // Seed some test data in valid range
+        $this->seed(\Database\Seeders\ParcelSeeder::class);
+
+        // Test with edge case valid coordinates (-180, -90, 180, 90)
+        $response = $this->getJson('/api/v1/parcels?bbox=-180,-90,180,90');
+
+        $response->assertStatus(200)
+            ->assertJsonStructure([
+                'type',
+                'features' => []
+            ]);
+    }
 }
