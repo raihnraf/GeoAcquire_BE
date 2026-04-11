@@ -32,7 +32,8 @@
 6. Seeder populates database with 10-20 dummy parcels in Gading Serpong area
 7. API returns calculated area (sqm) in all parcel GeoJSON responses
 
-**Plans:** TBD
+**Plans:**
+- [x] 01-01-PLAN.md — Spatial foundation implementation
 
 ### Phase 2: Spatial Analysis
 
@@ -54,14 +55,30 @@
 5. API can aggregate total area by status via GET /api/parcels/aggregate/area?by=status
 6. API can import bulk GeoJSON via POST /api/parcels/import with validation feedback
 
-**Plans:** TBD
+**Plans:**
+- [x] 02-01-PLAN.md — Spatial query endpoints (bounding box, point buffer, status filter)
+- [x] 02-02-PLAN.md — Parcel buffer and aggregation endpoints
+- [x] 02-03-PLAN.md — Bulk GeoJSON import endpoint
+- [x] 02-04-PLAN.md — Fix bulk import partial success (Gap 1 closure)
+- [x] 02-05-PLAN.md — Add bounding box coordinate range validation (Gap 2 closure)
 
 ## Progress
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Spatial Foundation | 1/1 | **Complete** | 18/18 requirements, 14 tests passing |
-| 2. Spatial Analysis | 0/1 | Not started | - |
+| 2. Spatial Analysis | 3/5 | In Progress | 5/6 requirements verified, 2 gaps found |
+
+## Gap Closure Plans
+
+### Phase 02 Gap Closure
+
+**Gaps Found:** 2 (from 02-VERIFICATION.md)
+
+| Plan | Gap Addressed | Description | Status |
+|------|---------------|-------------|--------|
+| 02-04-PLAN.md | Gap 1: Bulk Import Partial Success | Remove geometry type validation from BulkImportRequest to enable service-layer per-feature validation | Pending |
+| 02-05-PLAN.md | Gap 2: Bounding Box Coordinate Ranges | Add lng (-180 to 180), lat (-90 to 90), and min < max validation to ParcelController::index() | Pending |
 
 ---
 
