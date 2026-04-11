@@ -146,4 +146,23 @@ class ParcelController extends Controller
 
         return new ParcelCollectionResource($parcels);
     }
+
+    public function buffer(Request $request, Parcel $parcel): ParcelCollectionResource|JsonResponse
+    {
+        $distance = $request->integer('distance', 500);
+
+        // Validate distance range
+        if ($distance < 1 || $distance > 10000) {
+            return response()->json([
+                'message' => 'Distance must be between 1 and 10000 meters.',
+            ], 422);
+        }
+
+        $parcels = $this->parcelService->findParcelsWithinBufferOfParcel(
+            $parcel->id,
+            $distance
+        );
+
+        return new ParcelCollectionResource($parcels);
+    }
 }
