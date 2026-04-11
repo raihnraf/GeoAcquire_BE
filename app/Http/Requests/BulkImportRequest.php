@@ -18,8 +18,8 @@ class BulkImportRequest extends FormRequest
             'features' => ['required', 'array', 'min:1', 'max:100'],
             'features.*.type' => ['required', 'in:Feature'],
             'features.*.geometry' => ['required', 'array'],
-            'features.*.geometry.type' => ['required', 'in:Polygon'],
-            'features.*.geometry.coordinates' => ['required', 'array'],
+            // Geometry type and coordinates validation moved to service layer
+            // to enable partial success pattern for bulk imports
             'features.*.properties' => ['nullable', 'array'],
         ];
     }
@@ -29,7 +29,6 @@ class BulkImportRequest extends FormRequest
         return [
             'type.in' => 'The type must be FeatureCollection.',
             'features.max' => 'Cannot import more than 100 features in a single request.',
-            'features.*.geometry.type.in' => 'Only Polygon geometry is supported.',
         ];
     }
 }

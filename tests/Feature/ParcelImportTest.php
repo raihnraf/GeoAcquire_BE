@@ -236,8 +236,17 @@ class ParcelImportTest extends TestCase
 
         $response = $this->postJson('/api/v1/parcels/import', $geojson);
 
-        $response->assertStatus(422)
-            ->assertJsonValidationErrors(['features.0.geometry.type']);
+        // After partial success pattern: returns 200 with errors array
+        $response->assertStatus(200)
+            ->assertJsonPath('imported', 0)
+            ->assertJsonPath('errors', function ($errors) {
+                return count($errors) === 1 &&
+                       isset($errors[0]['feature_index']) &&
+                       $errors[0]['feature_index'] === 0 &&
+                       !empty($errors[0]['error']);
+            });
+
+        $this->assertDatabaseCount('parcels', 0);
     }
 
     public function test_import_continues_on_individual_failures(): void
