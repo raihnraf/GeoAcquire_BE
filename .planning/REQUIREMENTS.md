@@ -14,18 +14,18 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **DATA-03**: API can update parcel via PUT /api/parcels/{id}
 - [x] **DATA-04**: API can delete parcel via DELETE /api/parcels/{id}
 - [x] **DATA-05**: API can list all parcels via GET /api/parcels returning GeoJSON FeatureCollection
-- [ ] **DATA-06**: API can import bulk GeoJSON via POST /api/parcels/import with validation feedback
+- [x] **DATA-06**: API can import bulk GeoJSON via POST /api/parcels/import with validation feedback
 
 ### Spatial Queries (SPATIAL)
 
-- [ ] **SPAT-01**: API can find parcels within bounding box via GET /api/parcels?bbox=minx,miny,maxx,maxy
-- [ ] **SPAT-02**: API can find parcels within buffer zone of point via POST /api/analysis/buffer
-- [ ] **SPAT-03**: API can find parcels within buffer zone of parcel via GET /api/parcels/{id}/buffer?distance=500
+- [x] **SPAT-01**: API can find parcels within bounding box via GET /api/parcels?bbox=minx,miny,maxx,maxy
+- [x] **SPAT-02**: API can find parcels within buffer zone of point via POST /api/analysis/buffer
+- [x] **SPAT-03**: API can find parcels within buffer zone of parcel via GET /api/parcels/{id}/buffer?distance=500
 
 ### Analysis (ANALYSIS)
 
 - [x] **ANAL-01**: API can calculate parcel area via GET /api/parcels/{id}/area returning sqm and hectares
-- [ ] **ANAL-02**: API can aggregate total area by status via GET /api/parcels/aggregate/area?by=status
+- [x] **ANAL-02**: API can aggregate total area by status via GET /api/parcels/aggregate/area?by=status
 - [x] **ANAL-03**: API returns area in all parcel GeoJSON responses as property
 
 ### Foundation (FOUND)
@@ -34,7 +34,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **FOUND-02**: Database uses POINT type for parcel centroids
 - [x] **FOUND-03**: Spatial indexes created on all geometry columns
 - [x] **FOUND-04**: Geometry validation (ST_IsValid) runs before insert/update
-- [ ] **FOUND-05**: API filters parcels by status (target, negotiating, free) via ?status= parameter
+- [x] **FOUND-05**: API filters parcels by status (target, negotiating, free) via ?status= parameter
 - [x] **FOUND-06**: Laravel 12 project structure with layered architecture (Controllers → Services → Repositories)
 - [x] **FOUND-07**: API Resources transform Eloquent models to GeoJSON Feature/FeatureCollection format
 - [x] **FOUND-08**: Seeder populates database with 10-20 dummy parcels in Gading Serpong area
@@ -106,18 +106,18 @@ Which phases cover which requirements. Updated during roadmap creation.
 | API-04 | Phase 1 | **Complete** |
 | ANAL-01 | Phase 1 | **Complete** |
 | ANAL-03 | Phase 1 | **Complete** |
-| DATA-06 | Phase 2 | Pending |
-| SPAT-01 | Phase 2 | Pending |
-| FOUND-05 | Phase 2 | Pending |
-| SPAT-02 | Phase 2 | Pending |
-| SPAT-03 | Phase 2 | Pending |
-| ANAL-02 | Phase 2 | Pending |
+| DATA-06 | Phase 2 | Complete |
+| SPAT-01 | Phase 2 | Complete |
+| FOUND-05 | Phase 2 | Complete |
+| SPAT-02 | Phase 2 | Complete |
+| SPAT-03 | Phase 2 | Complete |
+| ANAL-02 | Phase 2 | Complete |
 
 **Coverage:**
 - v1 requirements: 25 total
 - Phase 1 complete: 18/18 ✅
-- Phase 2 pending: 6/6
-- Unmapped: 0 ✓
+- Phase 2 complete: 6/6 ✅
+- All requirements complete! 🎉
 
 ---
 *Requirements defined: 2026-04-11*
