@@ -83,8 +83,8 @@ class SpatialQueryTest extends TestCase
 
     public function test_buffer_analysis_finds_nearby_parcels(): void
     {
-        // Create parcel near reference point
-        $nearParcel = Parcel::factory()->create([
+        // Create parcel near reference point (within buffer)
+        $parcelWithinBuffer = Parcel::factory()->create([
             'boundary' => new Polygon([
                 new LineString([
                     new Point(-6.2500, 106.6150),
@@ -96,7 +96,7 @@ class SpatialQueryTest extends TestCase
             ]),
         ]);
 
-        // Create parcel far from reference point (~50km)
+        // Create parcel far from reference point (~50km, outside buffer)
         Parcel::factory()->create([
             'boundary' => new Polygon([
                 new LineString([
@@ -120,7 +120,7 @@ class SpatialQueryTest extends TestCase
 
         $features = $response->json('features');
         $this->assertCount(1, $features);
-        $this->assertEquals($nearParcel->id, $features[0]['id']);
+        $this->assertEquals($parcelWithinBuffer->id, $features[0]['id']);
     }
 
     public function test_buffer_analysis_validates_distance_limit(): void
@@ -202,8 +202,7 @@ class SpatialQueryTest extends TestCase
         $response = $this->getJson('/api/v1/parcels?bbox=999,-6,1000,-5');
 
         $response->assertStatus(422)
-            ->assertJsonPath('message', 'Longitude values must be between -180 and 180')
-            ->assertJsonPath('errors.bbox.0', 'Invalid longitude value');
+            ->assertJsonPath('errors.bbox.0', 'Longitude values must be between -180 and 180');
     }
 
     public function test_bounding_box_rejects_invalid_latitude(): void
@@ -211,8 +210,7 @@ class SpatialQueryTest extends TestCase
         $response = $this->getJson('/api/v1/parcels?bbox=106,999,107,-5');
 
         $response->assertStatus(422)
-            ->assertJsonPath('message', 'Latitude values must be between -90 and 90')
-            ->assertJsonPath('errors.bbox.0', 'Invalid latitude value');
+            ->assertJsonPath('errors.bbox.0', 'Latitude values must be between -90 and 90');
     }
 
     public function test_bounding_box_rejects_min_lng_greater_than_max_lng(): void
@@ -220,7 +218,6 @@ class SpatialQueryTest extends TestCase
         $response = $this->getJson('/api/v1/parcels?bbox=107,-6,106,-5');
 
         $response->assertStatus(422)
-            ->assertJsonPath('message', 'Invalid bbox: minLng must be less than maxLng')
             ->assertJsonPath('errors.bbox.0', 'minLng must be less than maxLng');
     }
 
@@ -229,7 +226,6 @@ class SpatialQueryTest extends TestCase
         $response = $this->getJson('/api/v1/parcels?bbox=106,-5,107,-6');
 
         $response->assertStatus(422)
-            ->assertJsonPath('message', 'Invalid bbox: minLat must be less than maxLat')
             ->assertJsonPath('errors.bbox.0', 'minLat must be less than maxLat');
     }
 
@@ -246,5 +242,144 @@ class SpatialQueryTest extends TestCase
                 'type',
                 'features' => []
             ]);
+    }
+
+    /**
+     * M4: Null geometry handling - buffer query handles parcel without centroid.
+     */
+    public function test_buffer_analysis_handles_parcel_without_centroid(): void
+    {
+        // Create a parcel with boundary but no centroid (edge case)
+        $parcelWithoutCentroid = Parcel::factory()->create([
+            'centroid' => null,
+        ]);
+
+        // Create a parcel with valid centroid
+        $validParcel = Parcel::factory()->create([
+            'boundary' => new Polygon([
+                new LineString([
+                    new Point(-6.2500, 106.6150),
+                    new Point(-6.2500, 106.6170),
+                    new Point(-6.2510, 106.6170),
+                    new Point(-6.2510, 106.6150),
+                    new Point(-6.2500, 106.6150),
+                ]),
+            ]),
+        ]);
+
+        $response = $this->postJson('/api/v1/analysis/buffer', [
+            'lng' => 106.616,
+            'lat' => -6.2505,
+            'distance' => 500,
+        ]);
+
+        $response->assertStatus(200);
+
+        $features = $response->json('features');
+        $this->assertGreaterThan(0, count($features));
+
+        // Should include the valid parcel but not the one without centroid
+        $featureIds = array_column($features, 'id');
+        $this->assertContains($validParcel->id, $featureIds);
+        $this->assertNotContains($parcelWithoutCentroid->id, $featureIds);
+    }
+
+    /**
+     * M4: Null geometry handling - parcel with null boundary doesn't crash centroid calculation.
+     */
+    public function test_parcel_creation_with_null_boundary(): void
+    {
+        // This test verifies that creating a parcel with null boundary
+        // doesn't cause issues with the model's centroid calculation logic
+        $parcel = Parcel::factory()->create([
+            'boundary' => null,
+            'centroid' => null,
+            'area_sqm' => null,
+        ]);
+
+        $this->assertDatabaseHas('parcels', ['id' => $parcel->id]);
+        $this->assertNull($parcel->boundary);
+        $this->assertNull($parcel->centroid);
+        $this->assertNull($parcel->area_sqm);
+    }
+
+    // ===== M6: Buffer Boundary Value Tests =====
+
+    /**
+     * M6: Test that zero distance buffer is rejected.
+     * Buffer distance must be at least 1 meter.
+     */
+    public function test_buffer_analysis_rejects_zero_distance(): void
+    {
+        $response = $this->postJson('/api/v1/analysis/buffer', [
+            'lng' => 106.616,
+            'lat' => -6.2505,
+            'distance' => 0,  // Zero distance - should be rejected
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['distance']);
+    }
+
+    /**
+     * M6: Test that negative distance buffer is rejected.
+     * Buffer distance must be a positive integer.
+     */
+    public function test_buffer_analysis_rejects_negative_distance(): void
+    {
+        $response = $this->postJson('/api/v1/analysis/buffer', [
+            'lng' => 106.616,
+            'lat' => -6.2505,
+            'distance' => -100,  // Negative distance - should be rejected
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['distance']);
+    }
+
+    /**
+     * M6: Test boundary case - minimum valid distance (1 meter).
+     */
+    public function test_buffer_analysis_accepts_minimum_distance_of_1_meter(): void
+    {
+        // Create a parcel at the reference point
+        $parcel = Parcel::factory()->create([
+            'boundary' => new Polygon([
+                new LineString([
+                    new Point(-6.2500, 106.6150),
+                    new Point(-6.2500, 106.6170),
+                    new Point(-6.2510, 106.6170),
+                    new Point(-6.2510, 106.6150),
+                    new Point(-6.2500, 106.6150),
+                ]),
+            ]),
+        ]);
+
+        $response = $this->postJson('/api/v1/analysis/buffer', [
+            'lng' => 106.616,
+            'lat' => -6.2505,
+            'distance' => 1,  // Minimum valid distance
+        ]);
+
+        $response->assertStatus(200);
+
+        // With 1 meter buffer from the parcel's centroid,
+        // the parcel itself should be included
+        $features = $response->json('features');
+        $this->assertGreaterThan(0, count($features));
+    }
+
+    /**
+     * M6: Test boundary case - maximum valid distance (10000 meters).
+     */
+    public function test_buffer_analysis_accepts_maximum_distance_of_10000_meters(): void
+    {
+        $response = $this->postJson('/api/v1/analysis/buffer', [
+            'lng' => 106.616,
+            'lat' => -6.2505,
+            'distance' => 10000,  // Maximum valid distance
+        ]);
+
+        $response->assertStatus(200);
     }
 }

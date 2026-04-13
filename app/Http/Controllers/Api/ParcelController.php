@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Exceptions\InvalidGeometryException;
+use App\Http\Requests\BoundingBoxRequest;
 use App\Http\Requests\BufferAnalysisRequest;
 use App\Http\Requests\StoreParcelRequest;
 use App\Http\Requests\UpdateParcelRequest;
@@ -15,102 +17,117 @@ use Illuminate\Http\Request;
 
 class ParcelController extends Controller
 {
+    /**
+     * Default buffer distance in meters for parcel buffer analysis.
+     * 500 meters is a reasonable default for identifying nearby parcels
+     * in land acquisition scenarios (approximately 5-6 city blocks).
+     */
+    private const DEFAULT_BUFFER_DISTANCE_METERS = 500;
+
+    /**
+     * Valid parcel status values for filtering.
+     */
+    private const VALID_STATUSES = ['free', 'negotiating', 'target'];
+
     public function __construct(
         private ParcelService $parcelService
-    ) {}
-
-    public function index(Request $request): ParcelCollectionResource|JsonResponse
+        )
     {
-        $perPage = $request->integer('per_page', 20);
+    }
 
-        // Handle spatial queries without pagination for bbox filter
-        if ($request->has('bbox')) {
-            // Validate bbox format
-            $bboxPattern = '/^\-?\d+(\.\d+)?,\-?\d+(\.\d+)?,\-?\d+(\.\d+)?,\-?\d+(\.\d+)?$/';
-            if (! preg_match($bboxPattern, $request->input('bbox'))) {
-                return response()->json([
-                    'message' => 'Invalid bbox format. Use: minLng,minLat,maxLng,maxLat',
-                    'errors' => ['bbox' => ['Invalid bbox format']],
-                ], 422);
+    /**
+     * Parse status parameter(s) into array of valid statuses.
+     * Supports both comma-separated string and array format:
+     * - ?status=free,negotiating
+     * - ?status[]=free&status[]=negotiating (works around PHP built-in server comma issue)
+     * Returns null if input is null or no valid statuses found.
+     */
+    private function parseStatuses(?string $statusParam): ?array
+    {
+        if ($statusParam === null) {
+            return null;
+        }
+
+        $parts = array_map('trim', explode(',', $statusParam));
+        $validParts = array_filter($parts, fn($s) =>
+            $s !== '' && in_array(strtolower($s), self::VALID_STATUSES, true)
+        );
+
+        return count($validParts) > 0 ? $validParts : null;
+    }
+
+    /**
+     * Parse status from request, supporting both comma-separated and array formats.
+     * This method works around PHP built-in server's limitation with commas in query params.
+     */
+    private function getStatusesFromRequest(Request $request): ?array
+    {
+        // Manually parse query string to handle multiple params with same name
+        // e.g., ?status=free&status=negotiating&status=target
+        // PHP's parse_str() only keeps the last value for duplicate keys
+        $queryString = $request->getQueryString();
+        $statuses = [];
+        
+        if ($queryString) {
+            // Parse query string manually to capture all values for 'status' key
+            $pairs = explode('&', $queryString);
+            foreach ($pairs as $pair) {
+                if (strpos($pair, '=') !== false) {
+                    [$key, $value] = explode('=', $pair, 2);
+                    $key = urldecode($key);
+                    $value = urldecode($value);
+                    
+                    if ($key === 'status' && $value !== '') {
+                        // Handle both 'status=free,negotiating' and 'status=free'
+                        $values = explode(',', $value);
+                        foreach ($values as $v) {
+                            $trimmed = strtolower(trim($v));
+                            if ($trimmed !== '' && in_array($trimmed, self::VALID_STATUSES, true)) {
+                                $statuses[] = $trimmed;
+                            }
+                        }
+                    }
+                }
             }
+        }
+        
+        // Remove duplicates and return
+        $uniqueStatuses = array_values(array_unique($statuses));
+        return count($uniqueStatuses) > 0 ? $uniqueStatuses : null;
+    }
 
-            // Parse coordinates
-            $coords = explode(',', $request->input('bbox'));
-            $minLng = (float) $coords[0];
-            $minLat = (float) $coords[1];
-            $maxLng = (float) $coords[2];
-            $maxLat = (float) $coords[3];
+    public function index(BoundingBoxRequest $request): ParcelCollectionResource
+    {
+        $bbox = $request->getBoundingBox();
+        // Use the parsed status array from the request
+        $statuses = $request->getStatusArray();
+        $statuses = count($statuses) > 0 ? $statuses : null;
 
-            // Validate longitude range (-180 to 180)
-            if ($minLng < -180 || $minLng > 180 || $maxLng < -180 || $maxLng > 180) {
-                return response()->json([
-                    'message' => 'Longitude values must be between -180 and 180',
-                    'errors' => ['bbox' => ['Invalid longitude value']],
-                ], 422);
-            }
+        // Handle spatial queries with bbox filter
+        if ($bbox !== null) {
+            [$minLng, $minLat, $maxLng, $maxLat] = $bbox;
 
-            // Validate latitude range (-90 to 90)
-            if ($minLat < -90 || $minLat > 90 || $maxLat < -90 || $maxLat > 90) {
-                return response()->json([
-                    'message' => 'Latitude values must be between -90 and 90',
-                    'errors' => ['bbox' => ['Invalid latitude value']],
-                ], 422);
-            }
-
-            // Validate min < max for both coordinates
-            if ($minLng >= $maxLng) {
-                return response()->json([
-                    'message' => 'Invalid bbox: minLng must be less than maxLng',
-                    'errors' => ['bbox' => ['minLng must be less than maxLng']],
-                ], 422);
-            }
-
-            if ($minLat >= $maxLat) {
-                return response()->json([
-                    'message' => 'Invalid bbox: minLat must be less than maxLat',
-                    'errors' => ['bbox' => ['minLat must be less than maxLat']],
-                ], 422);
-            }
-
-            // Validate status if provided
-            if ($request->has('status') && ! in_array($request->input('status'), ['free', 'negotiating', 'target'])) {
-                return response()->json([
-                    'message' => 'Invalid status value',
-                    'errors' => ['status' => ['Status must be one of: free, negotiating, target']],
-                ], 422);
-            }
-
-            // Use parsed coordinates instead of inline explode
             $parcels = $this->parcelService->findParcelsWithinBoundingBox(
                 $minLng, $minLat, $maxLng, $maxLat
             );
 
             // Apply status filter if provided
-            if ($request->has('status')) {
-                $status = $request->input('status');
-                $parcels = $parcels->where('status', $status);
+            if ($statuses !== null && count($statuses) > 0) {
+                $parcels = $parcels->whereIn('status', $statuses);
             }
 
             return new ParcelCollectionResource($parcels);
         }
 
         // Handle status filter without bbox
-        if ($request->has('status')) {
-            // Validate status
-            if (! in_array($request->input('status'), ['free', 'negotiating', 'target'])) {
-                return response()->json([
-                    'message' => 'Invalid status value',
-                    'errors' => ['status' => ['Status must be one of: free, negotiating, target']],
-                ], 422);
-            }
-
-            $parcels = $this->parcelService->findParcelsByStatus($request->input('status'));
+        if ($statuses !== null && count($statuses) > 0) {
+            $parcels = $this->parcelService->findParcelsByStatuses($statuses);
 
             return new ParcelCollectionResource($parcels);
         }
 
-        // Default: paginated list
-        $parcels = Parcel::paginate($perPage);
+        // Default: return all parcels for showcase (no pagination)
+        $parcels = $this->parcelService->getAllParcels();
 
         return new ParcelCollectionResource($parcels);
     }
@@ -123,11 +140,13 @@ class ParcelController extends Controller
             return (new ParcelResource($parcel))
                 ->response()
                 ->setStatusCode(201);
-        } catch (\InvalidArgumentException $e) {
+        }
+        catch (InvalidGeometryException $e) {
             return response()->json([
                 'message' => $e->getMessage(),
             ], 422);
-        } catch (\Exception $e) {
+        }
+        catch (\Exception $e) {
             return response()->json([
                 'message' => 'Failed to create parcel.',
             ], 500);
@@ -147,11 +166,13 @@ class ParcelController extends Controller
             return (new ParcelResource($parcel))
                 ->response()
                 ->setStatusCode(200);
-        } catch (\InvalidArgumentException $e) {
+        }
+        catch (InvalidGeometryException $e) {
             return response()->json([
                 'message' => $e->getMessage(),
             ], 422);
-        } catch (\Exception $e) {
+        }
+        catch (\Exception $e) {
             return response()->json([
                 'message' => 'Failed to update parcel.',
             ], 500);
@@ -164,7 +185,8 @@ class ParcelController extends Controller
             $this->parcelService->deleteParcel($parcel);
 
             return response()->json(['message' => 'Parcel deleted successfully']);
-        } catch (\Exception $e) {
+        }
+        catch (\Exception $e) {
             return response()->json([
                 'message' => 'Failed to delete parcel.',
             ], 500);
@@ -174,9 +196,9 @@ class ParcelController extends Controller
     public function bufferAnalysis(BufferAnalysisRequest $request): ParcelCollectionResource
     {
         $parcels = $this->parcelService->findParcelsWithinBuffer(
-            (float) $request->input('lng'),
-            (float) $request->input('lat'),
-            (int) $request->input('distance')
+            (float)$request->input('lng'),
+            (float)$request->input('lat'),
+            (int)$request->input('distance')
         );
 
         return new ParcelCollectionResource($parcels);
@@ -184,7 +206,7 @@ class ParcelController extends Controller
 
     public function buffer(Request $request, Parcel $parcel): ParcelCollectionResource|JsonResponse
     {
-        $distance = $request->integer('distance', 500);
+        $distance = $request->integer('distance', self::DEFAULT_BUFFER_DISTANCE_METERS);
 
         // Validate distance range
         if ($distance < 1 || $distance > 10000) {
@@ -199,5 +221,23 @@ class ParcelController extends Controller
         );
 
         return new ParcelCollectionResource($parcels);
+    }
+
+    /**
+     * Export parcels as pure GeoJSON FeatureCollection.
+     * Supports filtering by status and bounding box.
+     */
+    public function export(BoundingBoxRequest $request): JsonResponse
+    {
+        $bbox = $request->getBoundingBox();
+        $statuses = $this->getStatusesFromRequest($request);
+        $limit = $request->integer('limit', null);
+
+        $parcels = $this->parcelService->getFilteredParcels($bbox, $statuses, $limit);
+
+        return response()->json([
+            'type' => 'FeatureCollection',
+            'features' => ParcelResource::collection($parcels)->toArray($request),
+        ]);
     }
 }

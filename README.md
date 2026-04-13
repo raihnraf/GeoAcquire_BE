@@ -1,59 +1,163 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# GeoAcquire Backend
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Land Acquisition & Spatial Analysis Dashboard — REST API built with **Laravel 12** and **MySQL spatial extensions**.
 
-## About Laravel
+## Features
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- **Parcel CRUD** — Create, read, update, delete land parcels with GeoJSON Polygon geometry
+- **Spatial queries** — Find parcels within a buffer radius, bounding box, or near another parcel
+- **Area calculation** — MySQL `ST_Area` for accurate square-meter measurements
+- **Centroid calculation** — Automatic vertex-average centroid on save
+- **GeoJSON import** — Bulk import via Artisan command from GeoJSON FeatureCollection files
+- **Pagination** — Paginated list endpoint with full pagination metadata
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Tech Stack
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+| Layer | Technology |
+|-------|-----------|
+| Framework | Laravel 12 (PHP 8.2+) |
+| Database | MySQL 8.0+ with spatial extensions |
+| Spatial Library | [matanyadaev/laravel-eloquent-spatial](https://github.com/matanyadaev/laravel-eloquent-spatial) |
+| Testing | PHPUnit |
 
-## Learning Laravel
+## Quick Start
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+### Prerequisites
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+- PHP 8.2+
+- Composer
+- MySQL 8.0+ with spatial support
+- Node.js & npm (for Vite asset compilation, if needed)
 
-## Laravel Sponsors
+### Installation
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+```bash
+# 1. Clone and install dependencies
+composer install
+cp .env.example .env
+php artisan key:generate
 
-### Premium Partners
+# 2. Configure your database in .env
+DB_CONNECTION=mysql
+DB_DATABASE=geoacquire
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+# 3. Run migrations
+php artisan migrate
 
-## Contributing
+# 4. (Optional) Seed sample data
+php artisan db:seed --class=ParcelSeeder
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+### Running the Server
 
-## Code of Conduct
+```bash
+php artisan serve
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+The API is available at `http://localhost:8000/api/v1`.
 
-## Security Vulnerabilities
+## Running Tests
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+```bash
+# Create a test database and run migrations
+php artisan test
+# or
+./vendor/bin/phpunit
+```
+
+Test credentials are configured in `.env.testing`. The test suite uses `RefreshDatabase` so all tests run against a clean database.
+
+## API Endpoints
+
+All endpoints are prefixed with `/api/v1`.
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/v1/parcels` | List all parcels (paginated, GeoJSON FeatureCollection) |
+| `POST` | `/api/v1/parcels` | Create a new parcel |
+| `GET` | `/api/v1/parcels/{id}` | Get a single parcel as GeoJSON Feature |
+| `PUT` | `/api/v1/parcels/{id}` | Update a parcel (partial update) |
+| `DELETE` | `/api/v1/parcels/{id}` | Delete a parcel |
+| `GET` | `/api/v1/parcels/{id}/area` | Get calculated area for a parcel |
+
+### Query Parameters
+
+- `GET /api/v1/parcels?per_page=10&page=2` — Pagination controls (default: 20 per page)
+
+### Request Body (Create/Update)
+
+```json
+{
+  "owner_name": "PT Example Land",
+  "status": "target",
+  "price_per_sqm": 12500000,
+  "geometry": {
+    "type": "Polygon",
+    "coordinates": [[
+      [106.6150, -6.2500],
+      [106.6170, -6.2500],
+      [106.6170, -6.2510],
+      [106.6150, -6.2510],
+      [106.6150, -6.2500]
+    ]]
+  }
+}
+```
+
+- `owner_name` — **required** string, max 255 chars
+- `status` — optional, one of: `free`, `negotiating`, `target`
+- `price_per_sqm` — optional, numeric, minimum 0
+- `geometry` — **required** for create, GeoJSON Polygon with `[longitude, latitude]` coordinates
+
+### Response Format
+
+Responses follow **GeoJSON** conventions:
+- Single resource → `Feature`
+- List → `FeatureCollection` with pagination `metadata`
+
+### Status Values
+
+| Status | Description |
+|--------|-------------|
+| `free` | Available for acquisition |
+| `negotiating` | Currently under negotiation |
+| `target` | Priority target for acquisition |
+
+## Artisan Commands
+
+### Import GeoJSON
+
+```bash
+php artisan parcels:import path/to/file.geojson
+```
+
+Imports all features from a GeoJSON file. Reports imported count and any failed features with error details.
+
+### Seed Sample Data
+
+```bash
+php artisan db:seed --class=ParcelSeeder
+```
+
+Creates 15 sample parcels in the Gading Serpong, Tangerang area.
+
+## Project Structure
+
+```
+app/
+├── Console/Commands/     # Artisan commands (parcels:import)
+├── Enums/                # PHP enums (ParcelStatus)
+├── Http/
+│   ├── Controllers/Api/  # REST controllers (Parcel, Area)
+│   ├── Requests/         # Form requests (validation)
+│   └── Resources/        # API resources (GeoJSON transformers)
+├── Models/               # Eloquent models (Parcel)
+├── Repositories/         # Complex spatial queries only
+├── Rules/                # Custom validation rules (GeoJsonPolygon)
+├── Services/             # Business logic (ParcelService)
+└── Support/              # Static helpers (GeometryHelper)
+```
 
 ## License
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+MIT

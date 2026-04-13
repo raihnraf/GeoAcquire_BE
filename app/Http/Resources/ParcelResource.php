@@ -19,7 +19,6 @@ class ParcelResource extends JsonResource
             'id' => $this->id,
             'geometry' => $this->boundary ? json_decode($this->boundary->toJson()) : null,
             'properties' => [
-                'id' => $this->id,
                 'owner_name' => $this->owner_name,
                 'status' => $this->status,
                 'price_per_sqm' => $this->price_per_sqm ? (float) $this->price_per_sqm : null,

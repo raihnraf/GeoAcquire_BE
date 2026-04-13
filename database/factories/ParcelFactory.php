@@ -2,44 +2,44 @@
 
 namespace Database\Factories;
 
+use App\Enums\ParcelStatus;
 use App\Models\Parcel;
+use App\Support\GeometryHelper;
 use Illuminate\Database\Eloquent\Factories\Factory;
-use MatanYadaev\EloquentSpatial\Objects\LineString;
-use MatanYadaev\EloquentSpatial\Objects\Point;
-use MatanYadaev\EloquentSpatial\Objects\Polygon;
 
 class ParcelFactory extends Factory
 {
     protected $model = Parcel::class;
 
+    /**
+     * Coordinate delta in degrees for generating test parcel boundaries.
+     * At Jakarta's latitude (~-6.25°), 0.001° ≈ 111 meters.
+     */
+    private const COORDINATE_DELTA = 0.001;
+
     public function definition(): array
     {
         $lat = -6.25 + (rand(-100, 100) / 10000);
         $lng = 106.62 + (rand(-100, 100) / 10000);
-        $size = 0.001;
+        $size = self::COORDINATE_DELTA;
 
+        // GeoJSON order: [lng, lat]
         $coordinates = [
-            [$lat, $lng],
-            [$lat, $lng + $size],
-            [$lat + $size, $lng + $size],
-            [$lat + $size, $lng],
-            [$lat, $lng],
+            [$lng, $lat],
+            [$lng + $size, $lat],
+            [$lng + $size, $lat + $size],
+            [$lng, $lat + $size],
+            [$lng, $lat],
         ];
 
-        $points = array_map(
-            fn ($c) => new Point($c[0], $c[1]),
-            $coordinates
-        );
-
-        $centroidLat = array_sum(array_column($coordinates, 0)) / count($coordinates);
-        $centroidLng = array_sum(array_column($coordinates, 1)) / count($coordinates);
+        $centroid = GeometryHelper::centroidFromCoordinates($coordinates);
 
         return [
             'owner_name' => fake()->name(),
-            'status' => fake()->randomElement(['free', 'negotiating', 'target']),
+            'status' => fake()->randomElement(ParcelStatus::values()),
             'price_per_sqm' => fake()->numberBetween(5000000, 15000000),
-            'boundary' => new Polygon([new LineString($points)]),
-            'centroid' => new Point($centroidLat, $centroidLng),
+            'boundary' => GeometryHelper::polygonFromCoordinates([$coordinates]),
+            'centroid' => $centroid,
             'area_sqm' => null,
         ];
     }

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\GeometryHelper;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use MatanYadaev\EloquentSpatial\Objects\Point;
@@ -34,7 +35,9 @@ class Parcel extends Model
     protected static function booted(): void
     {
         static::saving(function (Parcel $parcel): void {
-            if ($parcel->boundary && ! $parcel->centroid) {
+            if ($parcel->boundary && $parcel->isDirty('boundary')) {
+                $parcel->centroid = $parcel->calculateCentroid();
+            } elseif ($parcel->boundary && ! $parcel->centroid) {
                 $parcel->centroid = $parcel->calculateCentroid();
             }
         });
@@ -49,31 +52,37 @@ class Parcel extends Model
     private function calculateCentroid(): Point
     {
         $geometry = $this->boundary->jsonSerialize();
-        $coordinates = $geometry['coordinates'][0]; // outer ring
 
-        $latSum = 0.0;
-        $lngSum = 0.0;
-        $count = count($coordinates);
-
-        foreach ($coordinates as $coord) {
-            $lngSum += $coord[0]; // GeoJSON: [lng, lat]
-            $latSum += $coord[1];
-        }
-
-        return new Point($latSum / $count, $lngSum / $count);
+        return GeometryHelper::centroidFromCoordinates($geometry['coordinates'][0]);
     }
 
     public function loadArea(): void
     {
-        $area = self::whereKey($this->id)
+        if (! $this->boundary) {
+            return;
+        }
+
+        // Use raw UPDATE with ST_Area to avoid race condition - single atomic operation
+        self::withoutEvents(function (): void {
+            self::whereKey($this->id)
+                ->update(['area_sqm' => \DB::raw('ST_Area(boundary)')]);
+        });
+    }
+
+    /**
+     * Calculate the area of this parcel's boundary in square meters.
+     */
+    public function calculateArea(): ?float
+    {
+        if (! $this->boundary) {
+            return null;
+        }
+
+        $result = self::whereKey($this->id)
             ->selectRaw('ST_Area(boundary) as area')
             ->first();
 
-        if ($area) {
-            self::withoutEvents(function () use ($area): void {
-                self::whereKey($this->id)->update(['area_sqm' => $area->area]);
-            });
-        }
+        return $result ? (float) $result->area : null;
     }
 
     public function scopeWithStatus($query, string $status)

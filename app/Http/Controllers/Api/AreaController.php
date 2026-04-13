@@ -15,18 +15,26 @@ class AreaController extends Controller
 
     public function show(Parcel $parcel): JsonResponse
     {
-        $areaSqm = $this->parcelService->calculateParcelArea($parcel);
+        try {
+            $areaSqm = $this->parcelService->calculateParcelArea($parcel);
 
-        if ($areaSqm === null) {
+            if ($areaSqm === null) {
+                return response()->json([
+                    'message' => 'Unable to calculate area. Parcel has no geometry.',
+                ], 422);
+            }
+
             return response()->json([
-                'message' => 'Unable to calculate area. Parcel has no geometry.',
-            ], 422);
-        }
+                'parcel_id' => $parcel->id,
+                'area_sqm' => round($areaSqm, 2),
+                'area_hectares' => round($areaSqm / 10000, 6),
+            ]);
+        } catch (\Throwable $e) {
+            report($e);
 
-        return response()->json([
-            'parcel_id' => $parcel->id,
-            'area_sqm' => round($areaSqm, 2),
-            'area_hectares' => round($areaSqm / 10000, 6),
-        ]);
+            return response()->json([
+                'message' => 'An error occurred while calculating the area.',
+            ], 500);
+        }
     }
 }

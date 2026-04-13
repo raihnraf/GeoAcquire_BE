@@ -6,8 +6,16 @@ use App\Models\Parcel;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
- * Spatial query repository — only non-trivial database queries live here.
- * Simple CRUD operations use Eloquent directly in the Service layer.
+ * Parcel repository — provides a consistent interface for parcel queries.
+ *
+ * This repository encapsulates all parcel-related database queries, both
+ * simple and spatial. While simple queries like findByStatus() could use
+ * Eloquent directly, keeping them here provides:
+ *
+ * 1. Consistent query pattern across the service layer
+ * 2. Single location for parcel query logic
+ * 3. Easier testing and mocking
+ * 4. Clear separation between service logic and data access
  */
 class ParcelRepository
 {
@@ -18,6 +26,11 @@ class ParcelRepository
     public function findByStatus(string $status): Collection
     {
         return $this->model->withStatus($status)->get();
+    }
+
+    public function findByStatuses(array $statuses): Collection
+    {
+        return $this->model->whereIn('status', $statuses)->get();
     }
 
     public function findWithinBuffer(
@@ -93,5 +106,10 @@ class ParcelRepository
         return $this->model::selectRaw('status, SUM(area_sqm) as total_area')
             ->groupBy('status')
             ->get();
+    }
+
+    public function getAll(): Collection
+    {
+        return $this->model->all();
     }
 }

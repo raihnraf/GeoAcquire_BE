@@ -10,6 +10,7 @@ Route::prefix('v1')->group(function () {
     // Register specific routes before apiResource to avoid conflicts
     Route::get('parcels/aggregate/area', [AggregateController::class, 'area']);
     Route::post('parcels/import', [ParcelImportController::class, 'import']);
+    Route::get('parcels/export', [ParcelController::class, 'export']);
     Route::apiResource('parcels', ParcelController::class);
     Route::get('parcels/{parcel}/area', [AreaController::class, 'show']);
     Route::get('parcels/{parcel}/buffer', [ParcelController::class, 'buffer']);
