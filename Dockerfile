@@ -12,6 +12,8 @@ RUN apt-get update && apt-get install -y \
     libzip-dev \
     zip \
     unzip \
+    ca-certificates \
+    openssl \
     && rm -rf /var/lib/apt/lists/*
 
 # Install MySQL extension for SSL support
