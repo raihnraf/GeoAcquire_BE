@@ -28,3 +28,7 @@ Thumbs.db
 geoacquire
 geoacquire_test
 database/database.sqlite
+
+# Claude Code local memory
+.claude/
+planning-*.md

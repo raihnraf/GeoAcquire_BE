@@ -22,15 +22,17 @@ services:
       - key: DB_CONNECTION
         value: mysql
       - key: DB_HOST
-        sync: false
+        value: mysql-gisapp-raihanftsl-6377.e.aivencloud.com
       - key: DB_PORT
-        value: "3306"
+        value: "28656"
       - key: DB_DATABASE
-        sync: false
+        value: defaultdb
       - key: DB_USERNAME
-        sync: false
+        value: avnadmin
       - key: DB_PASSWORD
-        sync: false
+        sync: false  # Set manually in Render dashboard
+      - key: MYSQL_ATTR_SSL_CA
+        value: /app/database/certs/aiven-ca.pem
       - key: CACHE_DRIVER
         value: database
       - key: SESSION_DRIVER
