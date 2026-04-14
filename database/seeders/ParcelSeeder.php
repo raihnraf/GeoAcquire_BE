@@ -203,151 +203,237 @@ class ParcelSeeder extends Seeder
             ],
         ];
 
-        // ===== TANGERANG SELATAN (12 parcels) =====
-        // BSD City area, Bintaro, Ciputat
+        // ===== TANGERANG SELATAN - LENGKONG GUDANG TIMUR (15 parcels) =====
+        // Realistic irregular polygons based on actual land parcel shapes
+        // Center area: approximately -6.2907, 106.6688 (Lengkong Gudang Timur, Serpong)
         $tangerangSelatan = [
+            // Parcel 1: Irregular L-shaped parcel near main road
             [
-                'owner_name' => 'PT BSD City',
+                'owner_name' => 'PT Lengkong Property',
+                'status' => 'target',
+                'price_per_sqm' => 15500000,
+                'coordinates' => [
+                    [106.66750, -6.28920],
+                    [106.66820, -6.28910],
+                    [106.66850, -6.28935],
+                    [106.66870, -6.28960],
+                    [106.66860, -6.28990],
+                    [106.66820, -6.29010],
+                    [106.66780, -6.29015],
+                    [106.66760, -6.28995],
+                    [106.66740, -6.28960],
+                    [106.66750, -6.28920],
+                ],
+            ],
+            // Parcel 2: Trapezoidal shape along river boundary
+            [
+                'owner_name' => 'Hendro Gunawan',
+                'status' => 'negotiating',
+                'price_per_sqm' => 12800000,
+                'coordinates' => [
+                    [106.66880, -6.28890],
+                    [106.66950, -6.28880],
+                    [106.66980, -6.28920],
+                    [106.66970, -6.28960],
+                    [106.66920, -6.28970],
+                    [106.66870, -6.28950],
+                    [106.66880, -6.28890],
+                ],
+            ],
+            // Parcel 3: Irregular pentagon with curved road edge
+            [
+                'owner_name' => 'Surya Adelina',
+                'status' => 'free',
+                'price_per_sqm' => 10500000,
+                'coordinates' => [
+                    [106.66680, -6.28950],
+                    [106.66740, -6.28940],
+                    [106.66750, -6.28920],
+                    [106.66740, -6.28960],
+                    [106.66760, -6.28995],
+                    [106.66720, -6.29000],
+                    [106.66680, -6.28950],
+                ],
+            ],
+            // Parcel 4: Large irregular commercial plot
+            [
+                'owner_name' => 'PT Serpong Raya Development',
+                'status' => 'target',
+                'price_per_sqm' => 16200000,
+                'coordinates' => [
+                    [106.66980, -6.28920],
+                    [106.67050, -6.28900],
+                    [106.67080, -6.28930],
+                    [106.67090, -6.28970],
+                    [106.67070, -6.29000],
+                    [106.67030, -6.29010],
+                    [106.66990, -6.29000],
+                    [106.66970, -6.28960],
+                    [106.66980, -6.28920],
+                ],
+            ],
+            // Parcel 5: Small triangular corner lot
+            [
+                'owner_name' => 'Diana Kusuma',
+                'status' => 'free',
+                'price_per_sqm' => 11000000,
+                'coordinates' => [
+                    [106.66820, -6.29010],
+                    [106.66860, -6.28990],
+                    [106.66870, -6.29030],
+                    [106.66840, -6.29040],
+                    [106.66820, -6.29010],
+                ],
+            ],
+            // Parcel 6: Irregular hexagon with road frontage
+            [
+                'owner_name' => 'Agus Setiawan',
+                'status' => 'negotiating',
+                'price_per_sqm' => 13200000,
+                'coordinates' => [
+                    [106.67030, -6.29010],
+                    [106.67070, -6.29000],
+                    [106.67090, -6.29040],
+                    [106.67080, -6.29070],
+                    [106.67040, -6.29080],
+                    [106.67010, -6.29050],
+                    [106.67030, -6.29010],
+                ],
+            ],
+            // Parcel 7: L-shaped residential plot
+            [
+                'owner_name' => 'Rina Marlina',
+                'status' => 'free',
+                'price_per_sqm' => 9800000,
+                'coordinates' => [
+                    [106.66780, -6.29040],
+                    [106.66820, -6.29010],
+                    [106.66840, -6.29040],
+                    [106.66860, -6.29080],
+                    [106.66820, -6.29090],
+                    [106.66790, -6.29070],
+                    [106.66780, -6.29040],
+                ],
+            ],
+            // Parcel 8: Irregular trapezoid near commercial area
+            [
+                'owner_name' => 'PT Gudang Timur Indah',
+                'status' => 'target',
+                'price_per_sqm' => 14800000,
+                'coordinates' => [
+                    [106.66900, -6.29020],
+                    [106.66950, -6.29000],
+                    [106.66980, -6.29030],
+                    [106.66960, -6.29070],
+                    [106.66910, -6.29080],
+                    [106.66900, -6.29020],
+                ],
+            ],
+            // Parcel 9: Complex 8-sided parcel following multiple boundaries
+            [
+                'owner_name' => 'Bambang Irawan',
+                'status' => 'negotiating',
+                'price_per_sqm' => 12500000,
+                'coordinates' => [
+                    [106.67090, -6.28970],
+                    [106.67120, -6.28950],
+                    [106.67140, -6.28980],
+                    [106.67150, -6.29020],
+                    [106.67130, -6.29050],
+                    [106.67100, -6.29060],
+                    [106.67080, -6.29070],
+                    [106.67090, -6.29040],
+                    [106.67090, -6.28970],
+                ],
+            ],
+            // Parcel 10: Narrow strip along drainage
+            [
+                'owner_name' => 'Siti Nurhaliza',
+                'status' => 'free',
+                'price_per_sqm' => 10200000,
+                'coordinates' => [
+                    [106.66750, -6.29070],
+                    [106.66790, -6.29050],
+                    [106.66820, -6.29090],
+                    [106.66840, -6.29120],
+                    [106.66810, -6.29130],
+                    [106.66770, -6.29100],
+                    [106.66750, -6.29070],
+                ],
+            ],
+            // Parcel 11: Irangular commercial corner
+            [
+                'owner_name' => 'CV Lengkong Sejahtera',
                 'status' => 'target',
                 'price_per_sqm' => 15000000,
                 'coordinates' => [
-                    [106.6900, -6.2900],
-                    [106.6950, -6.2900],
-                    [106.6950, -6.2950],
-                    [106.6900, -6.2950],
-                    [106.6900, -6.2900],
+                    [106.67010, -6.29080],
+                    [106.67040, -6.29060],
+                    [106.67080, -6.29070],
+                    [106.67090, -6.29110],
+                    [106.67060, -6.29130],
+                    [106.67020, -6.29120],
+                    [106.67010, -6.29080],
                 ],
             ],
+            // Parcel 12: Irregular pentagon - former rice field
             [
-                'owner_name' => 'Kartika Properties',
-                'status' => 'negotiating',
-                'price_per_sqm' => 10500000,
-                'coordinates' => [
-                    [106.6950, -6.2920],
-                    [106.7000, -6.2920],
-                    [106.7000, -6.2970],
-                    [106.6950, -6.2970],
-                    [106.6950, -6.2920],
-                ],
-            ],
-            [
-                'owner_name' => 'Budi Hartono',
-                'status' => 'free',
-                'price_per_sqm' => 8800000,
-                'coordinates' => [
-                    [106.7000, -6.2950],
-                    [106.7050, -6.2950],
-                    [106.7050, -6.3000],
-                    [106.7000, -6.3000],
-                    [106.7000, -6.2950],
-                ],
-            ],
-            [
-                'owner_name' => 'Sinar Mas Land',
-                'status' => 'target',
-                'price_per_sqm' => 14500000,
-                'coordinates' => [
-                    [106.6850, -6.2850],
-                    [106.6900, -6.2850],
-                    [106.6900, -6.2900],
-                    [106.6850, -6.2900],
-                    [106.6850, -6.2850],
-                ],
-            ],
-            [
-                'owner_name' => 'Wahyu Pratama',
-                'status' => 'negotiating',
-                'price_per_sqm' => 11200000,
-                'coordinates' => [
-                    [106.6920, -6.2980],
-                    [106.6970, -6.2980],
-                    [106.6970, -6.3030],
-                    [106.6920, -6.3030],
-                    [106.6920, -6.2980],
-                ],
-            ],
-            [
-                'owner_name' => 'Dian Permata',
-                'status' => 'free',
-                'price_per_sqm' => 9200000,
-                'coordinates' => [
-                    [106.6980, -6.2880],
-                    [106.7030, -6.2880],
-                    [106.7030, -6.2930],
-                    [106.6980, -6.2930],
-                    [106.6980, -6.2880],
-                ],
-            ],
-            [
-                'owner_name' => 'Ciputat Land Group',
-                'status' => 'target',
-                'price_per_sqm' => 13800000,
-                'coordinates' => [
-                    [106.7100, -6.3100],
-                    [106.7150, -6.3100],
-                    [106.7150, -6.3150],
-                    [106.7100, -6.3150],
-                    [106.7100, -6.3100],
-                ],
-            ],
-            [
-                'owner_name' => 'Bintaro Sejahtera',
-                'status' => 'negotiating',
-                'price_per_sqm' => 10800000,
-                'coordinates' => [
-                    [106.7150, -6.3050],
-                    [106.7200, -6.3050],
-                    [106.7200, -6.3100],
-                    [106.7150, -6.3100],
-                    [106.7150, -6.3050],
-                ],
-            ],
-            [
-                'owner_name' => 'Rizky Pratama',
+                'owner_name' => 'Eko Prabowo',
                 'status' => 'free',
                 'price_per_sqm' => 9500000,
                 'coordinates' => [
-                    [106.6880, -6.3020],
-                    [106.6930, -6.3020],
-                    [106.6930, -6.3070],
-                    [106.6880, -6.3070],
-                    [106.6880, -6.3020],
+                    [106.66880, -6.29090],
+                    [106.66920, -6.29070],
+                    [106.66950, -6.29110],
+                    [106.66930, -6.29140],
+                    [106.66890, -6.29130],
+                    [106.66880, -6.29090],
                 ],
             ],
+            // Parcel 13: Large irregular industrial plot
             [
-                'owner_name' => 'Pondok Indah Estate',
-                'status' => 'target',
-                'price_per_sqm' => 14200000,
-                'coordinates' => [
-                    [106.7050, -6.3000],
-                    [106.7100, -6.3000],
-                    [106.7100, -6.3050],
-                    [106.7050, -6.3050],
-                    [106.7050, -6.3000],
-                ],
-            ],
-            [
-                'owner_name' => 'Tangerang Selatan Property',
-                'status' => 'free',
-                'price_per_sqm' => 8900000,
-                'coordinates' => [
-                    [106.7020, -6.3080],
-                    [106.7070, -6.3080],
-                    [106.7070, -6.3130],
-                    [106.7020, -6.3130],
-                    [106.7020, -6.3080],
-                ],
-            ],
-            [
-                'owner_name' => 'Alam Sutera Land',
+                'owner_name' => 'PT Timur Industrial Estate',
                 'status' => 'negotiating',
-                'price_per_sqm' => 11500000,
+                'price_per_sqm' => 13800000,
                 'coordinates' => [
-                    [106.7120, -6.2950],
-                    [106.7170, -6.2950],
-                    [106.7170, -6.3000],
-                    [106.7120, -6.3000],
-                    [106.7120, -6.2950],
+                    [106.67100, -6.29060],
+                    [106.67150, -6.29040],
+                    [106.67180, -6.29070],
+                    [106.67190, -6.29120],
+                    [106.67160, -6.29150],
+                    [106.67120, -6.29160],
+                    [106.67090, -6.29130],
+                    [106.67100, -6.29060],
+                ],
+            ],
+            // Parcel 14: Small irregular residential
+            [
+                'owner_name' => 'Maya Anggraini',
+                'status' => 'free',
+                'price_per_sqm' => 10800000,
+                'coordinates' => [
+                    [106.66840, -6.29140],
+                    [106.66870, -6.29120],
+                    [106.66890, -6.29130],
+                    [106.66910, -6.29160],
+                    [106.66880, -6.29170],
+                    [106.66850, -6.29160],
+                    [106.66840, -6.29140],
+                ],
+            ],
+            // Parcel 15: Irregular hexagon with multiple road frontages
+            [
+                'owner_name' => 'Lengkong Gudang Estate',
+                'status' => 'target',
+                'price_per_sqm' => 16800000,
+                'coordinates' => [
+                    [106.66960, -6.29120],
+                    [106.67010, -6.29100],
+                    [106.67040, -6.29130],
+                    [106.67060, -6.29170],
+                    [106.67020, -6.29190],
+                    [106.66970, -6.29180],
+                    [106.66960, -6.29120],
                 ],
             ],
         ];

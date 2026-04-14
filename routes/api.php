@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('v1')->group(function () {
     // Register specific routes before apiResource to avoid conflicts
     Route::get('parcels/aggregate/area', [AggregateController::class, 'area']);
+    Route::get('parcels/count', [ParcelController::class, 'count']);
     Route::post('parcels/import', [ParcelImportController::class, 'import']);
     Route::get('parcels/export', [ParcelController::class, 'export']);
     Route::apiResource('parcels', ParcelController::class);

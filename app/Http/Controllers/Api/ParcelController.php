@@ -126,8 +126,12 @@ class ParcelController extends Controller
             return new ParcelCollectionResource($parcels);
         }
 
-        // Default: return all parcels for showcase (no pagination)
-        $parcels = $this->parcelService->getAllParcels();
+        // Default: paginated parcels for performance with large datasets
+        $perPage = $request->integer('per_page', 50);
+        $perPage = min(max($perPage, 10), 200); // Clamp between 10-200
+        $page = $request->integer('page', 1);
+
+        $parcels = $this->parcelService->getPaginatedParcels($perPage);
 
         return new ParcelCollectionResource($parcels);
     }
@@ -238,6 +242,20 @@ class ParcelController extends Controller
         return response()->json([
             'type' => 'FeatureCollection',
             'features' => ParcelResource::collection($parcels)->toArray($request),
+        ]);
+    }
+
+    /**
+     * Get parcel count (lightweight, no GeoJSON payload).
+     */
+    public function count(): JsonResponse
+    {
+        $totalCount = $this->parcelService->getParcelCount();
+        $countByStatus = $this->parcelService->getParcelCountByStatus();
+
+        return response()->json([
+            'total' => $totalCount,
+            'by_status' => $countByStatus,
         ]);
     }
 }

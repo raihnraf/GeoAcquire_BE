@@ -24,6 +24,16 @@ class ParcelService
         return Parcel::all();
     }
 
+    public function getParcelCount(): int
+    {
+        return $this->repository->getCount();
+    }
+
+    public function getParcelCountByStatus(): array
+    {
+        return $this->repository->getCountByStatus();
+    }
+
     public function getPaginatedParcels(int $perPage = 20): \Illuminate\Contracts\Pagination\LengthAwarePaginator
     {
         return Parcel::paginate($perPage);

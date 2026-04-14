@@ -112,4 +112,17 @@ class ParcelRepository
     {
         return $this->model->all();
     }
+
+    public function getCount(): int
+    {
+        return $this->model->count();
+    }
+
+    public function getCountByStatus(): array
+    {
+        return $this->model::selectRaw('status, COUNT(*) as count')
+            ->groupBy('status')
+            ->pluck('count', 'status')
+            ->toArray();
+    }
 }
