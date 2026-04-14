@@ -17,14 +17,14 @@ return new class extends Migration
             $table->string('status')->default('free');
             $table->decimal('price_per_sqm', 12, 2)->nullable();
             $table->geometry('boundary', subtype: 'polygon');
-            $table->geometry('centroid', subtype: 'point');
+            $table->geometry('centroid', subtype: 'point')->nullable();
             $table->decimal('area_sqm', 15, 2)->nullable();
             $table->timestamps();
 
             $driver = config('database.default');
             if ($driver === 'mysql') {
                 $table->spatialIndex('boundary');
-                $table->spatialIndex('centroid');
+                // Note: centroid is nullable, cannot have spatial index in MySQL
             }
             $table->index(['status', 'area_sqm']);
         });
