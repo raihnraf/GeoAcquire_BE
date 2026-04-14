@@ -116,12 +116,24 @@ class ParcelController extends Controller
                 $parcels = $parcels->whereIn('status', $statuses);
             }
 
+            // Apply limit to prevent oversized payloads (max 1000 validated by request)
+            $limit = $request->integer('limit');
+            if ($limit > 0 && $parcels->count() > $limit) {
+                $parcels = $parcels->take($limit);
+            }
+
             return new ParcelCollectionResource($parcels);
         }
 
         // Handle status filter without bbox
         if ($statuses !== null && count($statuses) > 0) {
             $parcels = $this->parcelService->findParcelsByStatuses($statuses);
+
+            // Apply limit to prevent oversized payloads
+            $limit = $request->integer('limit');
+            if ($limit > 0 && $parcels->count() > $limit) {
+                $parcels = $parcels->take($limit);
+            }
 
             return new ParcelCollectionResource($parcels);
         }
