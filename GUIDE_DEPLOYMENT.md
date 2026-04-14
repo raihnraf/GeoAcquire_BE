@@ -2,13 +2,15 @@
 
 **Backend API:** Laravel 12 | **Database:** MySQL 8.0 | **Target:** Free Tier Deployment
 
+> **Note:** PlanetScale free tier was discontinued in April 2024. This guide uses **Aiven** as the MySQL free tier alternative.
+
 ---
 
 ## Architecture Overview
 
 ```
 ┌─────────────┐         ┌─────────────┐         ┌──────────────┐
-│   Vercel    │ ────>   │   Render    │ ────>   │  PlanetScale │
+│   Vercel    │ ────>   │   Render    │ ────>   │    Aiven     │
 │  (Frontend) │  HTTP   │  (Laravel)  │  MySQL  │   (Database) │
 │   Free      │         │   Free      │         │     Free     │
 └─────────────┘         └─────────────┘         └──────────────┘
@@ -17,8 +19,21 @@
 | Platform | Purpose | Free Tier Limits |
 |----------|---------|------------------|
 | **Render** | Laravel API Backend | 750 hours/month, sleeps after 15min inactivity |
-| **PlanetScale** | MySQL Database | 5GB storage, 1B rows/month reads |
+| **Aiven** | MySQL Database | 1GB storage, 50GB traffic/month |
 | **Vercel** | React Frontend (separate repo) | 100GB bandwidth, 100k invocations/month |
+
+---
+
+## Free MySQL Database Options (2025)
+
+| Provider | Storage | Limit | Notes |
+|----------|---------|-------|-------|
+| **Aiven** | 1GB | 50GB traffic | ⭐ **Recommended** - Stable free tier |
+| **SkySQL** | 500MB | Serverless | MariaDB-based, good for testing |
+| **Railway** | 1GB | $5 credit one-time | Good alternative |
+| **Neon** | 0.5GB | PostgreSQL only | Not MySQL, no spatial functions |
+
+**For GeoAcquire (requires MySQL spatial functions):** Use **Aiven** — it provides real MySQL 8.0 with ST_* spatial functions support.
 
 ---
 
@@ -26,57 +41,44 @@
 
 1. **GitHub Repository** - Push code to GitHub (Render connects via Git)
 2. **Render Account** - Sign up at [render.com](https://render.com)
-3. **PlanetScale Account** - Sign up at [planetscale.com](https://planetscale.com)
+3. **Aiven Account** - Sign up at [aiven.io](https://aiven.io)
 4. **Local Environment** - PHP 8.2+, Composer, Git
 
 ---
 
-## Step 1: PlanetScale Database Setup
+## Step 1: Aiven Database Setup
 
 ### 1.1 Create Database
 
-1. Login to [PlanetScale Dashboard](https://app.planetscale.com/)
-2. Click **"New database"**
+1. Login to [Aiven Console](https://console.aiven.io/)
+2. Click **"Create service"**
 3. Configure:
-   - **Name:** `geoacquire-db` (or your preferred name)
-   - **Region:** Select closest to your users (e.g., Singapore)
-   - **Plan:** Free tier (Scaler Pro Free)
-4. Click **"Create database"
+   - **Service type:** MySQL
+   - **Cloud provider:** AWS
+   - **Region:** Singapore (closest to Indonesia)
+   - **Plan:** **Free tier** (look for "Free-0-3-1" or similar)
+   - **Service name:** `geoacquire-db`
+4. Click **"Create service"**
 
 ### 1.2 Get Connection Credentials
 
-1. Go to your database dashboard
-2. Click **"Connect"** button
-3. Select **"Connect with username and password"**
-4. Generate password and save these credentials:
+1. Go to your service dashboard
+2. Click **"Overview"** → **"Connection information"**
+3. You'll see credentials like:
 
 ```env
-DB_HOST=aws.connect.psdb.cloud
-DB_PORT=3306
-DB_DATABASE=geoacquire-db
-DB_USERNAME=xxxxxxxxxxxx
-DB_PASSWORD=pscale_pw_xxxxxxxxxx
+DB_HOST=xxx.aivencloud.com
+DB_PORT=24824  # Note: Aiven uses non-standard ports
+DB_DATABASE=defaultdb
+DB_USERNAME=avnadmin
+DB_PASSWORD=xxxxxxxxxxxx
 ```
 
-### 1.3 Enable PlanetScale SSL (Required)
+### 1.3 Download SSL Certificate (Required)
 
-PlanetScale requires SSL. Add to Laravel's `config/database.php` in the MySQL connections array:
-
-```php
-'mysql' => [
-    'driver' => 'mysql',
-    'url' => env('DATABASE_URL'),
-    'host' => env('DB_HOST', '127.0.0.1'),
-    'port' => env('DB_PORT', '3306'),
-    'database' => env('DB_DATABASE', 'forge'),
-    'username' => env('DB_USERNAME', 'forge'),
-    'password' => env('DB_PASSWORD', ''),
-    // Add these SSL options for PlanetScale
-    'options' => [
-        PDO::MYSQL_ATTR_SSL_CA => '/etc/ssl/certs/ca-certificates.crt',
-    ],
-],
-```
+1. In the same **Connection information** section
+2. Download **CA certificate** file
+3. For Render deployment, you'll need to configure SSL path
 
 ---
 
@@ -92,13 +94,12 @@ services:
     name: geoacquire-api
     env: php
     region: singapore
+    plan: free
     buildCommand: |
       composer install --no-dev --optimize-autoloader
       php artisan key:generate --force
       php artisan config:cache
       php artisan route:cache
-      php artisan migrate --force
-      php artisan db:seed --force
     startCommand: php artisan serve --host 0.0.0.0 --port $PORT
     envVars:
       - key: APP_ENV
@@ -112,26 +113,54 @@ services:
       - key: DB_CONNECTION
         value: mysql
       - key: DB_HOST
-        sync: false  # Set manually in Render dashboard
+        sync: false  # Set from Aiven
       - key: DB_PORT
-        value: "3306"
+        sync: false  # Aiven uses non-standard port (e.g., 24824)
       - key: DB_DATABASE
-        sync: false  # Set manually in Render dashboard
+        sync: false
       - key: DB_USERNAME
-        sync: false  # Set manually in Render dashboard
+        sync: false
       - key: DB_PASSWORD
-        sync: false  # Set manually in Render dashboard
+        sync: false
+      - key: MYSQL_ATTR_SSL_CA
+        value: /etc/ssl/certs/ca-certificates.crt
       - key: CACHE_DRIVER
         value: database
       - key: SESSION_DRIVER
         value: database
       - key: QUEUE_CONNECTION
         value: database
+    deployHooks:
+      - name: Run Migrations
+        cmd: php artisan migrate --force
+      - name: Seed Database
+        cmd: php artisan db:seed --force
 ```
 
-### 2.2 Verify Dependencies
+### 2.2 Verify Database Config
 
-Check `composer.json` has these required:
+Check `config/database.php` has SSL configured (already in Laravel 12):
+
+```php
+'mysql' => [
+    'driver' => 'mysql',
+    'host' => env('DB_HOST', '127.0.0.1'),
+    'port' => env('DB_PORT', '3306'),
+    'database' => env('DB_DATABASE', 'forge'),
+    'username' => env('DB_USERNAME', 'forge'),
+    'password' => env('DB_PASSWORD', ''),
+    'charset' => 'utf8mb4',
+    'collation' => 'utf8mb4_unicode_ci',
+    // SSL options for Aiven
+    'options' => extension_loaded('pdo_mysql') ? array_filter([
+        (PHP_VERSION_ID >= 80500 ? Mysql::ATTR_SSL_CA : PDO::MYSQL_ATTR_SSL_CA) => env('MYSQL_ATTR_SSL_CA'),
+    ]) : [],
+],
+```
+
+### 2.3 Verify Dependencies
+
+Check `composer.json` has:
 
 ```json
 {
@@ -141,21 +170,6 @@ Check `composer.json` has these required:
         "matanyadaev/laravel-eloquent-spatial": "^2.0"
     }
 }
-```
-
-### 2.3 Optimize for Production (Optional but Recommended)
-
-Run locally before pushing:
-
-```bash
-# Optimize composer autoload
-composer install --optimize-autoloader --no-dev
-
-# Cache config, routes, views
-php artisan optimize
-
-# Test in production mode locally
-APP_ENV=production php artisan serve
 ```
 
 ---
@@ -174,26 +188,26 @@ APP_ENV=production php artisan serve
 | Setting | Value |
 |---------|-------|
 | **Name** | `geoacquire-api` |
-| **Region** | Singapore (closest to Indonesia) |
+| **Region** | Singapore |
 | **Branch** | `master` or `main` |
 | **Runtime** | PHP (Native) |
-| **Build Command** | See `render.yaml` above |
-| **Start Command** | `php artisan serve --host 0.0.0.0 --port $PORT` |
+| **Plan** | Free |
 
 ### 3.3 Set Environment Variables
 
-In Render Dashboard → your service → **Environment**, add:
+In Render Dashboard → your service → **Environment**:
 
 ```env
 APP_ENV=production
 APP_DEBUG=false
 APP_URL=https://geoacquire-api.onrender.com
 DB_CONNECTION=mysql
-DB_HOST=aws.connect.psdb.cloud
-DB_PORT=3306
-DB_DATABASE=geoacquire-db
-DB_USERNAME=your_username
-DB_PASSWORD=your_password
+DB_HOST=xxx.aivencloud.com
+DB_PORT=24824
+DB_DATABASE=defaultdb
+DB_USERNAME=avnadmin
+DB_PASSWORD=your_password_here
+MYSQL_ATTR_SSL_CA=/etc/ssl/certs/ca-certificates.crt
 CACHE_DRIVER=database
 SESSION_DRIVER=database
 QUEUE_CONNECTION=database
@@ -202,7 +216,7 @@ QUEUE_CONNECTION=database
 ### 3.4 Deploy
 
 1. Click **"Create Web Service"**
-2. Render will automatically deploy from your GitHub branch
+2. Render will automatically deploy from GitHub
 3. Monitor logs in **"Logs"** tab
 
 **First deploy will:**
@@ -216,23 +230,23 @@ QUEUE_CONNECTION=database
 
 ## Step 4: Verify Deployment
 
-### 4.1 Check Health
+### 4.1 Check API Health
 
 ```bash
 # Test API root
-curl https://geoacquire-api.onrender.com/api/health
-
-# Test parcels endpoint
 curl https://geoacquire-api.onrender.com/api/v1/parcels
 
 # Test count endpoint
 curl https://geoacquire-api.onrender.com/api/v1/parcels/count
+
+# Test with pagination
+curl https://geoacquire-api.onrender.com/api/v1/parcels?page=1&per_page=10
 ```
 
-### 4.2 Check PlanetScale Data
+### 4.2 Check Aiven Data
 
-1. Go to PlanetScale Dashboard → your database
-2. Click **"Insights"** or **"Console"**
+1. Go to Aiven Console → your service
+2. Click **"SQL Editor"** or use connection from your local MySQL client
 3. Run: `SELECT COUNT(*) FROM parcels;`
 
 ---
@@ -245,13 +259,18 @@ Update your React frontend `.env`:
 VITE_API_BASE_URL=https://geoacquire-api.onrender.com/api/v1
 ```
 
-**Important:** Enable CORS in Laravel (already done in `config/cors.php`):
+**CORS already configured** in `config/cors.php`:
 
 ```php
 'paths' => ['api/*'],
 'allowed_methods' => ['*'],
-'allowed_origins' => ['*'],  // Lock this down to your Vercel domain in production
+'allowed_origins' => ['*'],  // Lock down to your Vercel domain in production
 'allowed_headers' => ['*'],
+```
+
+**For production, update to:**
+```php
+'allowed_origins' => ['https://your-frontend.vercel.app'],
 ```
 
 ---
@@ -263,17 +282,18 @@ VITE_API_BASE_URL=https://geoacquire-api.onrender.com/api/v1
 | Limitation | Impact | Mitigation |
 |------------|--------|------------|
 | 750 hours/month | ~31 days continuous | Adequate for demo |
-| Sleep after 15min inactivity | Cold start ~30-60s | Frontend shows loading state |
-| 512MB RAM | May slow with 1000+ parcels | Use pagination, optimize queries |
-| No SSL on free (custom domain) | Use render.com domain | OK for demo |
+| Sleep after 15min inactivity | Cold start ~30-60s | Frontend shows loading |
+| 512MB RAM | May slow with 1000+ parcels | Use pagination |
+| No custom SSL on free | Use .onrender.com domain | OK for demo |
 
-### PlanetScale Free Tier
+### Aiven Free Tier
 
 | Limitation | Impact | Mitigation |
 |------------|--------|------------|
-| 5GB storage | ~1M+ parcels | More than enough |
-| 1B rows/month reads | 1000 parcels x 1000 users = 1M reads | Very comfortable |
-| 100k writes/month | Seeding 1000 parcels = 1k writes | No issue |
+| 1GB storage | ~100k parcels | More than enough for demo |
+| 50GB traffic/month | ~50M API calls | Very comfortable |
+| Non-standard port | Need to configure DB_PORT | Already in render.yaml |
+| Requires SSL | Must configure SSL | Already configured |
 
 ---
 
@@ -281,22 +301,28 @@ VITE_API_BASE_URL=https://geoacquire-api.onrender.com/api/v1
 
 ### Issue: "SQLSTATE[HY000] [2002] Connection refused"
 
-**Cause:** PlanetScale SSL not configured
+**Cause:** Wrong port or SSL not configured
 
-**Fix:** Add SSL options to `config/database.php`:
-```php
-'options' => [
-    PDO::MYSQL_ATTR_SSL_CA => '/etc/ssl/certs/ca-certificates.crt',
-],
+**Fix:**
+1. Check Aiven uses non-standard port (e.g., 24824, not 3306)
+2. Verify `MYSQL_ATTR_SSL_CA` is set in environment
+
+### Issue: "SSL connection error"
+
+**Cause:** Aiven requires SSL
+
+**Fix:** Ensure these are in environment:
+```env
+MYSQL_ATTR_SSL_CA=/etc/ssl/certs/ca-certificates.crt
 ```
 
 ### Issue: "500 Internal Server Error"
 
-**Cause:** Missing APP_KEY or config cache issue
+**Cause:** Missing APP_KEY or config cache
 
 **Fix:**
 ```bash
-# In Render console / SSH
+# In Render console
 php artisan key:generate
 php artisan config:clear
 php artisan cache:clear
@@ -304,21 +330,17 @@ php artisan cache:clear
 
 ### Issue: Migration fails on deploy
 
-**Cause:** Database connection not ready during build
+**Cause:** Database not ready during build
 
-**Fix:** Use deploy hook instead of build command for migrations:
-```yaml
-deployHooks:
-  - name: Run Migrations
-    cmd: php artisan migrate --force
-```
+**Fix:** Already using `deployHooks` instead of `buildCommand` for migrations
 
 ### Issue: Spatial functions not working
 
-**Cause:** PlanetScale uses Vitess (MySQL-compatible), some ST_* functions may differ
+**Cause:** Wrong database or MySQL version
 
-**Fix:** Verify in PlanetScale console:
+**Fix:** Verify in Aiven SQL Editor:
 ```sql
+SELECT VERSION();  -- Should be 8.0+
 SELECT ST_AsGeoJSON(geometry) FROM parcels LIMIT 1;
 ```
 
@@ -329,22 +351,37 @@ SELECT ST_AsGeoJSON(geometry) FROM parcels LIMIT 1;
 | Service | Plan | Monthly Cost |
 |---------|------|--------------|
 | Render (Web Service) | Free | **$0** |
-| PlanetScale (Database) | Scaler Pro Free | **$0** |
+| Aiven (MySQL) | Free-0-3-1 | **$0** |
 | **Total** | | **$0** |
 
 **When to upgrade:**
 - >100 daily active users → Render Pro ($7/month)
-- >10GB data → PlanetScale Scaler Pro ($29/month)
+- >1GB data → Aiven Startup-1 (~$50/month) or consider Railway
+
+---
+
+## Alternative: Railway (Simpler Option)
+
+If Aiven feels complex, **Railway** has a simpler free tier:
+
+1. Sign up at [railway.app](https://railway.app)
+2. Connect GitHub repo
+3. Railway auto-detects Laravel
+4. Add MySQL service from marketplace
+5. **Limit:** $5 one-time credit, then pay-as-you-go
+
+Railway is easier but has less generous free tier for long-term use.
 
 ---
 
 ## Sources
 
-- [Render - Deploy PHP Laravel with Docker](https://render.com/docs/deploy-php-laravel-docker)
-- [PlanetScale - Connect Laravel Application](https://planetscale.com/docs/vitess/tutorials/connect-laravel-app)
-- [Laravel 12 - Deployment Optimization](https://laravel.com/docs/12.x/deployment)
+- [Aiven Free MySQL Database](https://aiven.io/free-mysql-database)
+- [Aiven MySQL Getting Started](https://aiven.io/docs/products/mysql/get-started)
+- [Render - Deploy PHP Laravel](https://render.com/docs/deploy-php-laravel-docker)
+- [Laravel 12 - Deployment](https://laravel.com/docs/12.x/deployment)
 - [Laravel 12 - Database Configuration](https://laravel.com/docs/12.x/database)
 
 ---
 
-*Last updated: 2026-04-14*
+*Last updated: 2026-04-14 (Updated for PlanetScale free tier deprecation)*
