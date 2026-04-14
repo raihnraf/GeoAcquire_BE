@@ -26,11 +26,8 @@ COPY . .
 # Install dependencies
 RUN composer install --no-dev --optimize-autoloader
 
-# Generate application key
-RUN php artisan key:generate --force
-
-# Cache config
-RUN php artisan config:cache
+# Note: APP_KEY will be set via Environment Variables in Render
+# Do NOT run key:generate or config:cache here - they need .env file
 
 # Set permissions
 RUN chown -R www-data:www-data /app \
