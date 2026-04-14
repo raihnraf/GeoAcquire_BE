@@ -1,0 +1,12 @@
+.git
+.github
+.claude
+node_modules
+storage/*.key
+vendor
+tests
+.phpunit.result.cache
+.env.backup
+Homestead.json
+Homestead.yaml
+planning-*.md
